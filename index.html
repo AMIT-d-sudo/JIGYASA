@@ -2,90 +2,148 @@
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>सुरक्षित फाइल शेयर - 10GB स्टोरेज</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>फाइल शेयर - 10GB फ्री</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.20.3/video-js.min.css">
+    <!-- PWA मेटा टैग -->
+    <meta name="theme-color" content="#4361ee">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <!-- Password Protection Modal -->
-    <div class="password-modal" id="passwordModal">
-        <div class="password-container">
-            <div class="password-header">
-                <i class="fas fa-lock"></i>
-                <h2>सुरक्षित एक्सेस</h2>
+    <!-- नाम इनपुट मोडल -->
+    <div class="name-modal" id="nameModal">
+        <div class="name-container">
+            <div class="name-header">
+                <i class="fas fa-user-circle"></i>
+                <h2>आपका नाम बताएं</h2>
             </div>
-            <div class="password-body">
-                <p>कृपया पासवर्ड डालें (डिफ़ॉल्ट: admin123)</p>
-                <div class="password-input-group">
-                    <i class="fas fa-key"></i>
-                    <input type="password" id="passwordInput" placeholder="पासवर्ड डालें" autocomplete="off">
-                    <button id="togglePassword" class="toggle-password">
-                        <i class="fas fa-eye"></i>
-                    </button>
+            <div class="name-body">
+                <p>अपना नाम डालकर प्रवेश करें</p>
+                <div class="name-input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="userNameInput" placeholder="जैसे: अमित, सीमा, राहुल" autocomplete="off" autofocus>
                 </div>
-                <div class="password-actions">
-                    <button id="loginBtn" class="btn-login">
-                        <i class="fas fa-sign-in-alt"></i> लॉगिन करें
-                    </button>
-                    <button id="changePasswordBtn" class="btn-change">
-                        <i class="fas fa-cog"></i> पासवर्ड बदलें
-                    </button>
+                <div class="name-suggestions">
+                    <span>सजेशन:</span>
+                    <button class="suggestion-btn" data-name="अमित">अमित</button>
+                    <button class="suggestion-btn" data-name="प्रिया">प्रिया</button>
+                    <button class="suggestion-btn" data-name="रोहित">रोहित</button>
+                    <button class="suggestion-btn" data-name="सीमा">सीमा</button>
                 </div>
-                <div id="passwordError" class="password-error"></div>
+                <div id="nameError" class="name-error"></div>
                 
-                <!-- Change Password Form (Hidden by default) -->
-                <div id="changePasswordForm" class="change-password-form" style="display: none;">
-                    <h4><i class="fas fa-cog"></i> पासवर्ड बदलें</h4>
-                    <div class="form-group">
-                        <label><i class="fas fa-lock"></i> पुराना पासवर्ड</label>
-                        <input type="password" id="oldPassword" placeholder="पुराना पासवर्ड">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-lock"></i> नया पासवर्ड</label>
-                        <input type="password" id="newPassword" placeholder="नया पासवर्ड">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-lock"></i> पासवर्ड कन्फर्म करें</label>
-                        <input type="password" id="confirmPassword" placeholder="पासवर्ड दोबारा डालें">
-                    </div>
-                    <div class="form-actions">
-                        <button id="savePasswordBtn" class="btn-save">
-                            <i class="fas fa-save"></i> सेव करें
-                        </button>
-                        <button id="cancelChangeBtn" class="btn-cancel">
-                            <i class="fas fa-times"></i> कैंसल
-                        </button>
-                    </div>
+                <button id="loginBtn" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> प्रवेश करें
+                </button>
+                
+                <div class="mobile-tips">
+                    <p><i class="fas fa-mobile-alt"></i> मोबाइल टिप्स:</p>
+                    <ul>
+                        <li>फाइल अपलोड करने के लिए क्लिक करें</li>
+                        <li>फाइलें गैलरी/फाइल मैनेजर से चुनें</li>
+                        <li>होरिजॉन्टल स्क्रॉल से नेविगेट करें</li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Loading Screen -->
+    <!-- लोडिंग स्क्रीन -->
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-content">
-            <i class="fas fa-cloud-upload-alt fa-spin"></i>
-            <h3>फाइल शेयर लोड हो रहा है...</h3>
+            <div class="mobile-loading">
+                <i class="fas fa-cloud-upload-alt fa-spin"></i>
+                <h3>लोड हो रहा है...</h3>
+                <p>मोबाइल के लिए ऑप्टिमाइज किया गया</p>
+            </div>
             <div class="progress-bar-loading">
                 <div class="progress-fill-loading"></div>
             </div>
         </div>
     </div>
 
-    <!-- Navigation -->
+    <!-- मोबाइल बॉटम नेविगेशन -->
+    <div class="mobile-bottom-nav">
+        <button class="mobile-nav-btn active" onclick="scrollToSection('upload')">
+            <i class="fas fa-upload"></i>
+            <span>अपलोड</span>
+        </button>
+        <button class="mobile-nav-btn" onclick="scrollToSection('files')">
+            <i class="fas fa-folder"></i>
+            <span>फाइलें</span>
+        </button>
+        <button class="mobile-nav-btn" onclick="scrollToSection('stats')">
+            <i class="fas fa-chart-pie"></i>
+            <span>स्टैट्स</span>
+        </button>
+        <button class="mobile-nav-btn" onclick="showMobileMenu()">
+            <i class="fas fa-bars"></i>
+            <span>मेनू</span>
+        </button>
+    </div>
+
+    <!-- मोबाइल मेनू -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="user-info-mobile">
+                <i class="fas fa-user-circle"></i>
+                <div>
+                    <h4 id="mobileUserName">अतिथि</h4>
+                    <p>फ्री स्टोरेज: <span id="mobileFreeStorage">10GB</span></p>
+                </div>
+            </div>
+            <button class="close-menu" onclick="hideMobileMenu()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mobile-menu-items">
+            <a href="#upload" class="mobile-menu-item" onclick="hideMobileMenu()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>फाइल अपलोड</span>
+            </a>
+            <a href="#files" class="mobile-menu-item" onclick="hideMobileMenu()">
+                <i class="fas fa-folder-open"></i>
+                <span>मेरी फाइलें</span>
+            </a>
+            <a href="#stats" class="mobile-menu-item" onclick="hideMobileMenu()">
+                <i class="fas fa-chart-bar"></i>
+                <span>स्टैटिस्टिक्स</span>
+            </a>
+            <button class="mobile-menu-item" onclick="clearAllFiles()">
+                <i class="fas fa-trash"></i>
+                <span>सब साफ़ करें</span>
+            </button>
+            <button class="mobile-menu-item" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>लॉगआउट</span>
+            </button>
+            <button class="mobile-menu-item" onclick="showHelp()">
+                <i class="fas fa-question-circle"></i>
+                <span>मदद</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- नेविगेशन बार (डेस्कटॉप के लिए) -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="logo-section">
                 <div class="logo">
-                    <i class="fas fa-database"></i>
+                    <i class="fas fa-cloud"></i>
                     <div>
-                        <h1>सुरक्षित फाइल शेयर</h1>
+                        <h1>मोबाइल फाइल शेयर</h1>
                         <p class="storage-info"><span id="usedStorage">0 MB</span> / <span id="totalStorage">10 GB</span></p>
                     </div>
                 </div>
+            </div>
+            
+            <div class="user-welcome" id="userWelcome">
+                <i class="fas fa-user-circle"></i>
+                <span>नमस्ते, <span id="currentUserName">अतिथि</span>!</span>
             </div>
             
             <div class="nav-links">
@@ -103,7 +161,7 @@
                 </a>
                 <button class="btn-clear" id="clearAllBtn">
                     <i class="fas fa-trash-alt"></i>
-                    सभी साफ़ करें
+                    साफ़ करें
                 </button>
                 <button class="btn-logout" id="logoutBtn">
                     <i class="fas fa-sign-out-alt"></i>
@@ -113,328 +171,270 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <header class="hero">
-        <div class="hero-container">
-            <div class="hero-text">
-                <h1><i class="fas fa-shield-alt"></i> 10GB फ्री स्टोरेज</h1>
-                <p>PDF, Word, Excel, PPT, TXT, Images, Video, Audio - सभी फाइलें अपलोड करें और शेयर करें</p>
-                <div class="storage-meter">
-                    <div class="meter-bar">
-                        <div class="meter-fill" id="storageMeter"></div>
-                    </div>
-                    <div class="meter-labels">
-                        <span>खाली: <span id="freeStorage">10 GB</span></span>
-                        <span>उपयोग: <span id="usedPercent">0%</span></span>
-                    </div>
-                </div>
-            </div>
-            <div class="hero-visual">
-                <div class="file-animation">
-                    <div class="file-icon-anim pdf">
-                        <i class="fas fa-file-pdf"></i>
-                    </div>
-                    <div class="file-icon-anim image">
-                        <i class="fas fa-file-image"></i>
-                    </div>
-                    <div class="file-icon-anim doc">
-                        <i class="fas fa-file-word"></i>
-                    </div>
-                    <div class="file-icon-anim video">
-                        <i class="fas fa-file-video"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Stats Section -->
-    <section id="stats" class="stats-section">
-        <div class="container">
-            <h2><i class="fas fa-chart-bar"></i> आपके स्टैट्स</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-file-upload"></i>
-                    </div>
-                    <h3 id="totalFiles">0</h3>
-                    <p>कुल फाइलें</p>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-eye"></i>
-                    </div>
-                    <h3 id="totalViews">0</h3>
-                    <p>कुल व्यू</p>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <h3 id="totalDownloads">0</h3>
-                    <p>कुल डाउनलोड</p>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3 id="visitorsCount">0</h3>
-                    <p>विज़िटर्स</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Upload Section -->
-    <section id="upload" class="upload-section">
-        <div class="container">
-            <h2><i class="fas fa-cloud-upload-alt"></i> फाइल अपलोड करें</h2>
-            
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-box" id="dropArea">
-                    <div class="upload-icon">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                    </div>
-                    <h3>फाइलें यहाँ ड्रॉप करें</h3>
-                    <p>या ब्राउज़ करने के लिए क्लिक करें</p>
-                    <p class="file-limit">अधिकतम: 500MB प्रति फाइल, कुल 10GB स्टोरेज</p>
-                    <p class="video-limit">वीडियो: अधिकतम 5 मिनट</p>
+    <!-- मुख्य कंटेंट -->
+    <div class="main-container">
+        <!-- हीरो सेक्शन -->
+        <header class="hero">
+            <div class="hero-container">
+                <div class="hero-text">
+                    <h1><i class="fas fa-mobile-alt"></i> मोबाइल फ्रेंडली फाइल शेयर</h1>
+                    <p>आसानी से अपने मोबाइल से फाइलें अपलोड करें और शेयर करें</p>
                     
-                    <div class="supported-types">
-                        <div class="type-item">
-                            <i class="fas fa-file-pdf"></i>
-                            <span>PDF</span>
+                    <div class="mobile-features">
+                        <div class="feature">
+                            <i class="fas fa-bolt"></i>
+                            <span>फास्ट अपलोड</span>
                         </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-word"></i>
-                            <span>Word</span>
+                        <div class="feature">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>सुरक्षित</span>
                         </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-excel"></i>
-                            <span>Excel</span>
-                        </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-powerpoint"></i>
-                            <span>PPT</span>
-                        </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-image"></i>
-                            <span>Images</span>
-                        </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-video"></i>
-                            <span>Video</span>
-                        </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-audio"></i>
-                            <span>Audio</span>
-                        </div>
-                        <div class="type-item">
-                            <i class="fas fa-file-archive"></i>
-                            <span>Zip</span>
+                        <div class="feature">
+                            <i class="fas fa-wifi"></i>
+                            <span>ऑफलाइन भी</span>
                         </div>
                     </div>
                     
-                    <input type="file" id="fileInput" multiple style="display: none;">
-                    <button class="btn-browse" id="browseBtn">
-                        <i class="fas fa-folder-open"></i> फाइलें चुनें
+                    <div class="storage-meter mobile-meter">
+                        <div class="meter-bar">
+                            <div class="meter-fill" id="storageMeter"></div>
+                        </div>
+                        <div class="meter-labels">
+                            <span>खाली: <span id="freeStorage">10 GB</span></span>
+                            <span>उपयोग: <span id="usedPercent">0%</span></span>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-quick-upload" onclick="scrollToUpload()">
+                        <i class="fas fa-plus"></i> जल्दी अपलोड करें
                     </button>
                 </div>
                 
-                <!-- Selected Files Preview -->
-                <div class="selected-files" id="selectedFiles">
-                    <h4><i class="fas fa-list"></i> चुनी गई फाइलें: <span id="selectedCount">0</span></h4>
-                    <div class="files-list" id="filesListPreview"></div>
-                </div>
-                
-                <!-- Upload Progress -->
-                <div class="upload-progress" id="uploadProgress" style="display: none;">
-                    <div class="progress-header">
-                        <span>अपलोड प्रोग्रेस</span>
-                        <span id="progressPercent">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-info">
-                        <span id="currentFile">-</span>
-                        <span id="uploadSpeed">-</span>
+                <div class="hero-visual">
+                    <div class="mobile-animation">
+                        <div class="phone-screen">
+                            <div class="phone-content">
+                                <div class="app-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <h4>फाइल अपलोडेड</h4>
+                                <div class="upload-animation">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <i class="fas fa-file-image"></i>
+                                    <i class="fas fa-file-video"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Upload Button -->
-                <button class="btn-upload" id="uploadBtn" disabled>
-                    <i class="fas fa-upload"></i> सभी फाइलें अपलोड करें
-                </button>
             </div>
-        </div>
-    </section>
+        </header>
 
-    <!-- Files Section -->
-    <section id="files" class="files-section">
-        <div class="container">
-            <div class="section-header">
-                <h2><i class="fas fa-folder-open"></i> आपकी सभी फाइलें</h2>
-                <div class="controls">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchBox" placeholder="फाइल नाम से खोजें...">
-                        <button class="btn-clear-search" id="clearSearchBtn">
-                            <i class="fas fa-times"></i>
+        <!-- स्टैट्स सेक्शन -->
+        <section id="stats" class="stats-section">
+            <div class="container">
+                <h2><i class="fas fa-mobile"></i> मोबाइल स्टैट्स</h2>
+                <div class="stats-grid mobile-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon mobile-stat">
+                            <i class="fas fa-file-upload"></i>
+                        </div>
+                        <h3 id="totalFiles">0</h3>
+                        <p>कुल फाइलें</p>
+                        <div class="stat-trend">+0 आज</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon mobile-stat">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h3 id="totalDownloads">0</h3>
+                        <p>डाउनलोड</p>
+                        <div class="stat-trend">+0 आज</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon mobile-stat">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3 id="totalSizeMB">0 MB</h3>
+                        <p>स्टोरेज यूज़</p>
+                        <div class="stat-trend" id="storageTrend">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon mobile-stat">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3 id="visitorsCount">1</h3>
+                        <p>यूज़र्स</p>
+                        <div class="stat-trend">आप</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- अपलोड सेक्शन (मोबाइल के लिए ऑप्टिमाइज्ड) -->
+        <section id="upload" class="upload-section mobile-upload">
+            <div class="container">
+                <h2><i class="fas fa-mobile-alt"></i> मोबाइल से अपलोड</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <!-- मोबाइल अपलोड ऑप्शन्स -->
+                    <div class="mobile-upload-options">
+                        <button class="upload-option-btn" onclick="openCamera()">
+                            <i class="fas fa-camera"></i>
+                            <span>कैमरा</span>
+                        </button>
+                        <button class="upload-option-btn" onclick="openGallery()">
+                            <i class="fas fa-images"></i>
+                            <span>गैलरी</span>
+                        </button>
+                        <button class="upload-option-btn" onclick="openFilePicker()">
+                            <i class="fas fa-folder"></i>
+                            <span>फाइल्स</span>
+                        </button>
+                        <button class="upload-option-btn" onclick="createDocument()">
+                            <i class="fas fa-file-alt"></i>
+                            <span>नया बनाएं</span>
                         </button>
                     </div>
-                    <select id="sortSelect" class="sort-select">
-                        <option value="newest">नई से पुरानी</option>
-                        <option value="oldest">पुरानी से नई</option>
-                        <option value="largest">बड़ी से छोटी</option>
-                        <option value="smallest">छोटी से बड़ी</option>
-                        <option value="name">नाम से</option>
-                        <option value="type">टाइप से</option>
-                    </select>
+                    
+                    <div class="upload-box mobile-upload-box" id="dropArea">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3>यहाँ टैप करें या फाइल ड्रॉप करें</h3>
+                        <p>मोबाइल के लिए आसान अपलोड</p>
+                        <p class="file-limit">अधिकतम: 500MB प्रति फाइल</p>
+                        
+                        <div class="supported-types mobile-types">
+                            <div class="type-item">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>PDF</span>
+                            </div>
+                            <div class="type-item">
+                                <i class="fas fa-image"></i>
+                                <span>फोटो</span>
+                            </div>
+                            <div class="type-item">
+                                <i class="fas fa-video"></i>
+                                <span>वीडियो</span>
+                            </div>
+                            <div class="type-item">
+                                <i class="fas fa-file-word"></i>
+                                <span>डॉक्यूमेंट</span>
+                            </div>
+                        </div>
+                        
+                        <input type="file" id="fileInput" multiple accept="*/*" style="display: none;">
+                        <button class="btn-browse" id="browseBtn">
+                            <i class="fas fa-folder-open"></i> फाइलें चुनें
+                        </button>
+                    </div>
+                    
+                    <!-- चुनी गई फाइलें (मोबाइल फ्रेंडली) -->
+                    <div class="selected-files mobile-files" id="selectedFiles">
+                        <div class="files-header">
+                            <h4><i class="fas fa-list"></i> चुनी गई फाइलें</h4>
+                            <span class="file-count" id="selectedCount">0</span>
+                        </div>
+                        <div class="files-list mobile-list" id="filesListPreview">
+                            <!-- फाइलें यहाँ लोड होंगी -->
+                        </div>
+                    </div>
+                    
+                    <!-- अपलोड प्रोग्रेस -->
+                    <div class="upload-progress mobile-progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-header">
+                            <span>अपलोड हो रहा है...</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-info">
+                            <span id="currentFile">-</span>
+                            <span id="uploadSpeed">-</span>
+                        </div>
+                    </div>
+                    
+                    <!-- अपलोड बटन -->
+                    <button class="btn-upload mobile-upload-btn" id="uploadBtn" disabled>
+                        <i class="fas fa-cloud-upload-alt"></i> सभी फाइलें अपलोड करें
+                    </button>
                 </div>
             </div>
-            
-            <!-- Files Grid -->
-            <div class="files-grid" id="filesGrid">
-                <!-- Files will be loaded here -->
-            </div>
-            
-            <!-- Empty State -->
-            <div class="empty-state" id="emptyState">
-                <div class="empty-icon">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </div>
-                <h3>कोई फाइल नहीं मिली</h3>
-                <p>पहली फाइल अपलोड करने के लिए ऊपर जाएं</p>
-                <button class="btn-upload-first" onclick="scrollToUpload()">
-                    <i class="fas fa-upload"></i> फाइल अपलोड करें
-                </button>
-            </div>
-            
-            <!-- Pagination -->
-            <div class="pagination" id="pagination" style="display: none;">
-                <button class="page-btn" id="prevPageBtn">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="page-numbers" id="pageNumbers"></div>
-                <button class="page-btn" id="nextPageBtn">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- File Preview Modal -->
-    <div class="preview-modal" id="previewModal">
-        <div class="preview-container">
-            <div class="preview-header">
-                <h3><i class="fas fa-eye"></i> फाइल प्रिव्यू</h3>
-                <button class="btn-close-preview" id="closePreviewBtn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="preview-body" id="previewBody">
-                <!-- Preview content will be loaded here -->
-            </div>
-            
-            <div class="preview-footer">
-                <div class="file-info">
-                    <div class="info-item">
-                        <i class="fas fa-file"></i>
-                        <span id="previewFileName">-</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-weight"></i>
-                        <span id="previewFileSize">-</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-calendar"></i>
-                        <span id="previewFileDate">-</span>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-eye"></i>
-                        <span id="previewFileViews">0 व्यू</span>
+        <!-- फाइल्स सेक्शन (मोबाइल लिस्ट व्यू) -->
+        <section id="files" class="files-section mobile-files-section">
+            <div class="container">
+                <div class="section-header mobile-header">
+                    <h2><i class="fas fa-th-list"></i> आपकी सभी फाइलें</h2>
+                    <div class="mobile-controls">
+                        <div class="search-box mobile-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchBox" placeholder="फाइल ढूंढें...">
+                            <button class="btn-clear-search" id="clearSearchBtn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <select id="sortSelect" class="sort-select mobile-sort">
+                            <option value="newest">नई से पुरानी</option>
+                            <option value="oldest">पुरानी से नई</option>
+                            <option value="name">नाम से</option>
+                            <option value="type">टाइप से</option>
+                        </select>
                     </div>
                 </div>
                 
-                <div class="preview-actions">
-                    <button class="btn-preview" id="downloadPreviewBtn">
-                        <i class="fas fa-download"></i> डाउनलोड
+                <!-- फाइल्स ग्रिड/लिस्ट -->
+                <div class="files-view-toggle">
+                    <button class="view-toggle-btn active" onclick="setViewMode('grid')">
+                        <i class="fas fa-th-large"></i>
                     </button>
-                    <button class="btn-preview" id="sharePreviewBtn">
-                        <i class="fas fa-share-alt"></i> शेयर
-                    </button>
-                    <button class="btn-preview btn-danger" id="deletePreviewBtn">
-                        <i class="fas fa-trash"></i> डिलीट
+                    <button class="view-toggle-btn" onclick="setViewMode('list')">
+                        <i class="fas fa-list"></i>
                     </button>
                 </div>
+                
+                <!-- ग्रिड व्यू -->
+                <div class="files-grid mobile-grid" id="filesGrid">
+                    <!-- फाइलें यहाँ लोड होंगी -->
+                </div>
+                
+                <!-- लिस्ट व्यू (मोबाइल के लिए) -->
+                <div class="files-list-view" id="filesListView" style="display: none;">
+                    <!-- फाइलें लिस्ट में दिखेंगी -->
+                </div>
+                
+                <!-- खाली स्टेट -->
+                <div class="empty-state mobile-empty" id="emptyState">
+                    <div class="empty-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3>कोई फाइल नहीं मिली</h3>
+                    <p>पहली फाइल अपलोड करने के लिए ऊपर जाएं</p>
+                    <button class="btn-upload-first" onclick="scrollToUpload()">
+                        <i class="fas fa-upload"></i> फाइल अपलोड करें
+                    </button>
+                </div>
+                
+                <!-- पेजिनेशन (मोबाइल फ्रेंडली) -->
+                <div class="pagination mobile-pagination" id="pagination" style="display: none;">
+                    <button class="page-btn mobile-page-btn" id="prevPageBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="page-numbers mobile-pages" id="pageNumbers"></div>
+                    <button class="page-btn mobile-page-btn" id="nextPageBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Help Modal -->
-    <div class="help-modal" id="helpModal">
-        <div class="help-container">
-            <div class="help-header">
-                <h3><i class="fas fa-question-circle"></i> मदद</h3>
-                <button class="btn-close-help" id="closeHelpBtn">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="help-body">
-                <div class="help-section">
-                    <h4><i class="fas fa-upload"></i> कैसे अपलोड करें:</h4>
-                    <ol>
-                        <li>फाइलें ड्रैग एंड ड्रॉप करें या "फाइलें चुनें" बटन क्लिक करें</li>
-                        <li>अधिकतम 500MB प्रति फाइल</li>
-                        <li>कुल 10GB स्टोरेज मुफ्त</li>
-                        <li>वीडियो: अधिकतम 5 मिनट</li>
-                        <li>सभी सामान्य फाइल टाइप्स सपोर्टेड</li>
-                    </ol>
-                </div>
-                <div class="help-section">
-                    <h4><i class="fas fa-download"></i> कैसे डाउनलोड करें:</h4>
-                    <ul>
-                        <li>फाइल पर क्लिक करके प्रिव्यू देखें</li>
-                        <li>डाउनलोड बटन क्लिक करें</li>
-                        <li>फाइल आपके डिवाइस पर सेव हो जाएगी</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4><i class="fas fa-share-alt"></i> सुरक्षित फाइल शेयर</h4>
-                    <p>10GB मुफ्त स्टोरेज के साथ</p>
-                    <p>पासवर्ड प्रोटेक्टेड</p>
-                    <p>विज़िटर्स: <span id="footerVisitors">0</span></p>
-                </div>
-                <div class="footer-section">
-                    <h4><i class="fas fa-mobile-alt"></i> कॉन्टेक्ट</h4>
-                    <p><i class="fas fa-envelope"></i> ad2949528@gmail.com</p>
-                    <p><i class="fas fa-phone"></i> +917489299385</p>
-                </div>
-                <div class="footer-section">
-                    <h4><i class="fas fa-exclamation-triangle"></i> नोट</h4>
-                    <p>फाइलें 30 दिनों तक सेव रहेंगी</p>
-                    <p>सभी डेटा आपके ब्राउज़र में</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>© 2024 सुरक्षित फाइल शेयर - ब्राउज़र में स्टोर होती हैं सभी फाइलें</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/7.20.3/video.min.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+        <!-- मोबाइल टिप्स सेक्शन -->
+        <section class="mobile-tips-section">
+            <div class="container">
+                <h2><i class="fas fa-lightbulb"></i> मोबाइल यूज़र टिप्स</h2>
+                <div class="tips-grid">
+                    <div class="tip-card">
+                        <i class="fas
