@@ -1,11 +1,11 @@
-// ===== CONFIGURATION =====
+// ===== MOBILE-FIRST CONFIGURATION =====
 const CONFIG = {
-    STORAGE_KEY: 'secure_file_sharing_system',
-    PASSWORD_KEY: 'file_system_password',
+    STORAGE_KEY: 'mobile_file_sharing_system',
+    USER_NAME_KEY: 'file_system_user_name',
     VISITORS_KEY: 'file_system_visitors',
-    MAX_STORAGE: 10 * 1024 * 1024 * 1024, // 10GB in bytes
-    MAX_FILE_SIZE: 500 * 1024 * 1024, // 500MB per file
-    MAX_VIDEO_DURATION: 5 * 60, // 5 minutes in seconds
+    MAX_STORAGE: 10 * 1024 * 1024 * 1024, // 10GB
+    MAX_FILE_SIZE: 500 * 1024 * 1024, // 500MB
+    MAX_VIDEO_DURATION: 5 * 60, // 5 minutes
     ITEMS_PER_PAGE: 12,
     SUPPORTED_TYPES: {
         'pdf': ['pdf'],
@@ -17,60 +17,77 @@ const CONFIG = {
         'video': ['mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv'],
         'audio': ['mp3', 'wav', 'ogg', 'm4a', 'flac'],
         'archive': ['zip', 'rar', '7z', 'tar', 'gz']
-    },
-    DEFAULT_PASSWORD: 'admin123'
+    }
 };
 
 // ===== STATE =====
 let state = {
     isLoggedIn: false,
+    userName: null,
     files: [],
     selectedFiles: [],
     currentPage: 1,
     searchQuery: '',
     sortBy: 'newest',
+    viewMode: 'grid', // 'grid' or 'list'
     stats: {
         totalFiles: 0,
         totalSize: 0,
         totalViews: 0,
         totalDownloads: 0,
-        visitors: 0
+        visitors: 1,
+        todayUploads: 0
     },
     currentPreviewFile: null,
-    sessionStart: null
+    lastActivity: new Date().toISOString()
+};
+
+// ===== MOBILE DETECTION =====
+const isMobile = {
+    Android: function() {
+        return navigator.userAgent.match(/Android/i);
+    },
+    iOS: function() {
+        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+    },
+    any: function() {
+        return (isMobile.Android() || isMobile.iOS());
+    }
 };
 
 // ===== DOM ELEMENTS =====
 const elements = {
-    // Password Modal
-    passwordModal: document.getElementById('passwordModal'),
-    passwordInput: document.getElementById('passwordInput'),
+    // Name Modal
+    nameModal: document.getElementById('nameModal'),
+    userNameInput: document.getElementById('userNameInput'),
     loginBtn: document.getElementById('loginBtn'),
-    togglePassword: document.getElementById('togglePassword'),
-    changePasswordBtn: document.getElementById('changePasswordBtn'),
-    changePasswordForm: document.getElementById('changePasswordForm'),
-    oldPassword: document.getElementById('oldPassword'),
-    newPassword: document.getElementById('newPassword'),
-    confirmPassword: document.getElementById('confirmPassword'),
-    savePasswordBtn: document.getElementById('savePasswordBtn'),
-    cancelChangeBtn: document.getElementById('cancelChangeBtn'),
-    passwordError: document.getElementById('passwordError'),
+    nameError: document.getElementById('nameError'),
     
     // Loading
     loadingScreen: document.getElementById('loadingScreen'),
+    
+    // User Display
+    currentUserName: document.getElementById('currentUserName'),
+    userWelcome: document.getElementById('userWelcome'),
+    mobileUserName: document.getElementById('mobileUserName'),
+    footerUserName: document.getElementById('footerUserName'),
     
     // Storage
     usedStorage: document.getElementById('usedStorage'),
     totalStorage: document.getElementById('totalStorage'),
     freeStorage: document.getElementById('freeStorage'),
+    mobileFreeStorage: document.getElementById('mobileFreeStorage'),
     usedPercent: document.getElementById('usedPercent'),
     storageMeter: document.getElementById('storageMeter'),
+    footerStorage: document.getElementById('footerStorage'),
     
     // Stats
     totalFiles: document.getElementById('totalFiles'),
-    totalViews: document.getElementById('totalViews'),
+    totalSizeMB: document.getElementById('totalSizeMB'),
     totalDownloads: document.getElementById('totalDownloads'),
     visitorsCount: document.getElementById('visitorsCount'),
+    storageTrend: document.getElementById('storageTrend'),
+    lastActivity: document.getElementById('lastActivity'),
     
     // Upload
     fileInput: document.getElementById('fileInput'),
@@ -84,11 +101,11 @@ const elements = {
     progressFill: document.getElementById('progressFill'),
     progressPercent: document.getElementById('progressPercent'),
     currentFile: document.getElementById('currentFile'),
-    uploadSpeed: document.getElementById('uploadSpeed'),
     uploadBtn: document.getElementById('uploadBtn'),
     
     // Files
     filesGrid: document.getElementById('filesGrid'),
+    filesListView: document.getElementById('filesListView'),
     emptyState: document.getElementById('emptyState'),
     searchBox: document.getElementById('searchBox'),
     clearSearchBtn: document.getElementById('clearSearchBtn'),
@@ -112,9 +129,8 @@ const elements = {
     sharePreviewBtn: document.getElementById('sharePreviewBtn'),
     deletePreviewBtn: document.getElementById('deletePreviewBtn'),
     
-    // Other
-    clearAllBtn: document.getElementById('clearAllBtn'),
-    logoutBtn: document.getElementById('logoutBtn'),
+    // Mobile Elements
+    mobileMenu: document.getElementById('mobileMenu'),
     helpModal: document.getElementById('helpModal'),
     closeHelpBtn: document.getElementById('closeHelpBtn'),
     footerVisitors: document.getElementById('footerVisitors')
@@ -193,147 +209,177 @@ function getTimeAgo(date) {
     return 'अभी';
 }
 
-// ===== PASSWORD MANAGEMENT =====
-function initPasswordSystem() {
-    // Set default password if not exists
-    if (!localStorage.getItem(CONFIG.PASSWORD_KEY)) {
-        localStorage.setItem(CONFIG.PASSWORD_KEY, CONFIG.DEFAULT_PASSWORD);
+// ===== MOBILE UTILITIES =====
+function showMobileToast(message, type = 'success') {
+    const toast = document.getElementById('mobileToast');
+    const icon = toast.querySelector('i');
+    const messageSpan = document.getElementById('toastMessage');
+    
+    // Set icon based on type
+    icon.className = `fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}`;
+    messageSpan.textContent = message;
+    
+    // Show toast
+    toast.classList.add('show');
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
     }
+}
+
+function showMobileMenu() {
+    elements.mobileMenu.classList.add('show');
+}
+
+function hideMobileMenu() {
+    elements.mobileMenu.classList.remove('show');
+}
+
+function closePreview() {
+    elements.previewModal.style.display = 'none';
+}
+
+function setViewMode(mode) {
+    state.viewMode = mode;
+    
+    // Update active button
+    document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    if (mode === 'grid') {
+        document.querySelector('.view-toggle-btn:nth-child(1)').classList.add('active');
+        elements.filesGrid.style.display = 'grid';
+        elements.filesListView.style.display = 'none';
+    } else {
+        document.querySelector('.view-toggle-btn:nth-child(2)').classList.add('active');
+        elements.filesGrid.style.display = 'none';
+        elements.filesListView.style.display = 'block';
+    }
+    
+    loadFiles();
+}
+
+// ===== NAME-BASED LOGIN SYSTEM =====
+function initNameSystem() {
+    // Check if user name exists
+    const savedName = localStorage.getItem(CONFIG.USER_NAME_KEY);
+    
+    if (savedName) {
+        // Auto login with saved name
+        state.userName = savedName;
+        state.isLoggedIn = true;
+        elements.nameModal.style.display = 'none';
+        updateUserDisplay(savedName);
+        initApp();
+        return;
+    }
+    
+    // Show name modal for new users
+    elements.nameModal.style.display = 'flex';
+    
+    // Add event listeners
+    elements.loginBtn.addEventListener('click', handleNameLogin);
+    
+    // Enter key support
+    elements.userNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleNameLogin();
+    });
+    
+    // Name suggestions
+    document.querySelectorAll('.suggestion-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            elements.userNameInput.value = e.target.dataset.name;
+            elements.userNameInput.focus();
+        });
+    });
     
     // Initialize visitors count
     if (!localStorage.getItem(CONFIG.VISITORS_KEY)) {
         localStorage.setItem(CONFIG.VISITORS_KEY, '1');
         state.stats.visitors = 1;
     } else {
-        state.stats.visitors = parseInt(localStorage.getItem(CONFIG.VISITORS_KEY)) + 1;
+        state.stats.visitors = parseInt(localStorage.getItem(CONFIG.VISITORS_KEY));
+        state.stats.visitors++;
         localStorage.setItem(CONFIG.VISITORS_KEY, state.stats.visitors.toString());
     }
     
     updateVisitorsDisplay();
-    
-    // Check if already logged in
-    const session = localStorage.getItem('file_session');
-    if (session) {
-        const sessionData = JSON.parse(session);
-        const now = new Date();
-        const sessionTime = new Date(sessionData.timestamp);
-        
-        // Check if session is valid (24 hours)
-        if (now - sessionTime < 24 * 60 * 60 * 1000) {
-            state.isLoggedIn = true;
-            state.sessionStart = new Date();
-            elements.passwordModal.style.display = 'none';
-            initApp();
-            return;
-        }
-    }
-    
-    // Show password modal
-    elements.passwordModal.style.display = 'flex';
-    
-    // Login button
-    elements.loginBtn.addEventListener('click', handleLogin);
-    
-    // Enter key on password input
-    elements.passwordInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleLogin();
-        }
-    });
-    
-    // Toggle password visibility
-    elements.togglePassword.addEventListener('click', () => {
-        const type = elements.passwordInput.getAttribute('type');
-        elements.passwordInput.setAttribute('type', type === 'password' ? 'text' : 'password');
-        elements.togglePassword.innerHTML = type === 'password' ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
-    });
-    
-    // Change password button
-    elements.changePasswordBtn.addEventListener('click', () => {
-        elements.changePasswordForm.style.display = 'block';
-    });
-    
-    // Save new password
-    elements.savePasswordBtn.addEventListener('click', handleChangePassword);
-    
-    // Cancel change
-    elements.cancelChangeBtn.addEventListener('click', () => {
-        elements.changePasswordForm.style.display = 'none';
-        clearPasswordForm();
-    });
-    
-    // Logout button
-    elements.logoutBtn.addEventListener('click', handleLogout);
 }
 
-function handleLogin() {
-    const password = elements.passwordInput.value;
-    const savedPassword = localStorage.getItem(CONFIG.PASSWORD_KEY);
+function handleNameLogin() {
+    const userName = elements.userNameInput.value.trim();
     
-    if (password === savedPassword) {
-        state.isLoggedIn = true;
-        state.sessionStart = new Date();
-        
-        // Save session
-        localStorage.setItem('file_session', JSON.stringify({
-            timestamp: new Date().toISOString()
-        }));
-        
-        elements.passwordModal.style.display = 'none';
-        showNotification('लॉगिन सफल!', 'success');
-        initApp();
-    } else {
-        elements.passwordError.textContent = 'गलत पासवर्ड!';
-        elements.passwordInput.value = '';
-        elements.passwordInput.focus();
-    }
-}
-
-function handleChangePassword() {
-    const oldPass = elements.oldPassword.value;
-    const newPass = elements.newPassword.value;
-    const confirmPass = elements.confirmPassword.value;
-    const savedPassword = localStorage.getItem(CONFIG.PASSWORD_KEY);
-    
-    if (oldPass !== savedPassword) {
-        showNotification('पुराना पासवर्ड गलत है', 'error');
+    if (userName === '') {
+        elements.nameError.textContent = 'कृपया अपना नाम डालें';
+        elements.userNameInput.focus();
         return;
     }
     
-    if (newPass.length < 4) {
-        showNotification('नया पासवर्ड कम से कम 4 अक्षर का होना चाहिए', 'error');
+    if (userName.length < 2) {
+        elements.nameError.textContent = 'नाम कम से कम 2 अक्षर का हो';
+        elements.userNameInput.focus();
         return;
     }
     
-    if (newPass !== confirmPass) {
-        showNotification('पासवर्ड मेल नहीं खा रहे', 'error');
-        return;
-    }
+    // Login successful
+    state.userName = userName;
+    state.isLoggedIn = true;
     
-    localStorage.setItem(CONFIG.PASSWORD_KEY, newPass);
-    elements.changePasswordForm.style.display = 'none';
-    clearPasswordForm();
-    showNotification('पासवर्ड बदल गया!', 'success');
+    // Save to localStorage
+    localStorage.setItem(CONFIG.USER_NAME_KEY, userName);
+    localStorage.setItem('file_session', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        userName: userName
+    }));
+    
+    // Hide modal
+    elements.nameModal.style.display = 'none';
+    
+    // Update UI
+    updateUserDisplay(userName);
+    
+    // Show welcome toast
+    showMobileToast(`नमस्ते ${userName}! आपका स्वागत है`, 'success');
+    
+    // Initialize app
+    initApp();
 }
 
-function clearPasswordForm() {
-    elements.oldPassword.value = '';
-    elements.newPassword.value = '';
-    elements.confirmPassword.value = '';
-    elements.passwordError.textContent = '';
-}
-
-function handleLogout() {
-    if (confirm('क्या आप लॉगआउट करना चाहते हैं?')) {
-        localStorage.removeItem('file_session');
-        state.isLoggedIn = false;
-        location.reload();
+function updateUserDisplay(userName) {
+    // Update all user name displays
+    if (elements.currentUserName) elements.currentUserName.textContent = userName;
+    if (elements.mobileUserName) elements.mobileUserName.textContent = userName;
+    if (elements.footerUserName) elements.footerUserName.textContent = userName;
+    
+    // Show welcome section
+    if (elements.userWelcome) {
+        elements.userWelcome.style.display = 'flex';
     }
 }
 
 function updateVisitorsDisplay() {
-    elements.visitorsCount.textContent = state.stats.visitors;
-    elements.footerVisitors.textContent = state.stats.visitors;
+    if (elements.visitorsCount) {
+        elements.visitorsCount.textContent = state.stats.visitors;
+    }
+}
+
+function handleLogout() {
+    if (confirm('क्या आप लॉगआउट करना चाहते हैं?\nआपका नाम डिलीट हो जाएगा।')) {
+        localStorage.removeItem(CONFIG.USER_NAME_KEY);
+        localStorage.removeItem('file_session');
+        state.userName = null;
+        state.isLoggedIn = false;
+        location.reload();
+    }
 }
 
 // ===== STORAGE MANAGEMENT =====
@@ -342,6 +388,7 @@ function saveToStorage() {
         const data = {
             files: state.files,
             stats: state.stats,
+            userName: state.userName,
             lastUpdated: new Date().toISOString()
         };
         localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(data));
@@ -349,7 +396,7 @@ function saveToStorage() {
         return true;
     } catch (error) {
         console.error('Storage error:', error);
-        showNotification('स्टोरेज में सेव करने में त्रुटि', 'error');
+        showMobileToast('स्टोरेज में सेव करने में त्रुटि', 'error');
         return false;
     }
 }
@@ -365,7 +412,8 @@ function loadFromStorage() {
                 totalSize: 0,
                 totalViews: 0,
                 totalDownloads: 0,
-                visitors: state.stats.visitors
+                visitors: state.stats.visitors,
+                todayUploads: 0
             };
             
             // Update stats
@@ -384,36 +432,52 @@ function updateStorageDisplay() {
     const free = CONFIG.MAX_STORAGE - used;
     const percent = (used / CONFIG.MAX_STORAGE) * 100;
     
-    elements.usedStorage.textContent = formatFileSize(used);
-    elements.totalStorage.textContent = '10 GB';
-    elements.freeStorage.textContent = formatFileSize(free);
-    elements.usedPercent.textContent = percent.toFixed(1) + '%';
-    elements.storageMeter.style.width = Math.min(percent, 100) + '%';
+    // Update desktop display
+    if (elements.usedStorage) elements.usedStorage.textContent = formatFileSize(used);
+    if (elements.freeStorage) elements.freeStorage.textContent = formatFileSize(free);
+    if (elements.usedPercent) elements.usedPercent.textContent = percent.toFixed(1) + '%';
+    if (elements.storageMeter) {
+        elements.storageMeter.style.width = Math.min(percent, 100) + '%';
+        if (percent > 90) {
+            elements.storageMeter.style.background = 'linear-gradient(90deg, #f72585, #ff6b6b)';
+        } else if (percent > 75) {
+            elements.storageMeter.style.background = 'linear-gradient(90deg, #f8961e, #f9c74f)';
+        }
+    }
     
-    // Update meter color based on usage
-    if (percent > 90) {
-        elements.storageMeter.style.background = 'linear-gradient(90deg, #f72585, #ff6b6b)';
-    } else if (percent > 75) {
-        elements.storageMeter.style.background = 'linear-gradient(90deg, #f8961e, #f9c74f)';
-    } else {
-        elements.storageMeter.style.background = 'linear-gradient(90deg, #4cc9f0, #4361ee)';
+    // Update mobile display
+    if (elements.mobileFreeStorage) {
+        elements.mobileFreeStorage.textContent = formatFileSize(free);
+    }
+    if (elements.footerStorage) {
+        elements.footerStorage.textContent = `${formatFileSize(used)} / 10GB`;
+    }
+    if (elements.totalSizeMB) {
+        elements.totalSizeMB.textContent = formatFileSize(used);
+    }
+    if (elements.storageTrend) {
+        elements.storageTrend.textContent = percent.toFixed(0) + '%';
     }
 }
 
 function updateStats() {
-    // Update from files array
+    // Calculate from files array
     state.stats.totalFiles = state.files.length;
     state.stats.totalSize = state.files.reduce((sum, file) => sum + file.size, 0);
     state.stats.totalViews = state.files.reduce((sum, file) => sum + file.views, 0);
     state.stats.totalDownloads = state.files.reduce((sum, file) => sum + file.downloads, 0);
     
     // Update DOM
-    elements.totalFiles.textContent = state.stats.totalFiles;
-    elements.totalViews.textContent = state.stats.totalViews;
-    elements.totalDownloads.textContent = state.stats.totalDownloads;
+    if (elements.totalFiles) elements.totalFiles.textContent = state.stats.totalFiles;
+    if (elements.totalDownloads) elements.totalDownloads.textContent = state.stats.totalDownloads;
+    
+    // Update activity time
+    if (elements.lastActivity) {
+        elements.lastActivity.textContent = getTimeAgo(state.lastActivity);
+    }
 }
 
-// ===== FILE UPLOAD =====
+// ===== FILE UPLOAD (MOBILE OPTIMIZED) =====
 function initUpload() {
     // Browse button
     elements.browseBtn.addEventListener('click', () => {
@@ -425,7 +489,12 @@ function initUpload() {
         handleFiles(e.target.files);
     });
     
-    // Drag and drop
+    // Mobile upload options
+    if (isMobile.any()) {
+        setupMobileUpload();
+    }
+    
+    // Drag and drop (desktop)
     elements.dropArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         elements.dropArea.classList.add('dragover');
@@ -438,7 +507,6 @@ function initUpload() {
     elements.dropArea.addEventListener('drop', async (e) => {
         e.preventDefault();
         elements.dropArea.classList.remove('dragover');
-        
         if (e.dataTransfer.files.length) {
             await handleFiles(e.dataTransfer.files);
         }
@@ -448,6 +516,46 @@ function initUpload() {
     elements.uploadBtn.addEventListener('click', startUpload);
 }
 
+function setupMobileUpload() {
+    // Camera upload
+    window.openCamera = function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showMobileToast('कैमरा सपोर्ट नहीं है', 'error');
+            return;
+        }
+        
+        // For mobile, we'll just trigger file input with camera accept
+        elements.fileInput.setAttribute('accept', 'image/*');
+        elements.fileInput.setAttribute('capture', 'environment');
+        elements.fileInput.click();
+        // Reset accept attribute
+        setTimeout(() => {
+            elements.fileInput.removeAttribute('accept');
+            elements.fileInput.removeAttribute('capture');
+        }, 100);
+    };
+    
+    // Gallery upload
+    window.openGallery = function() {
+        elements.fileInput.setAttribute('accept', 'image/*,video/*');
+        elements.fileInput.click();
+        setTimeout(() => {
+            elements.fileInput.removeAttribute('accept');
+        }, 100);
+    };
+    
+    // File picker
+    window.openFilePicker = function() {
+        elements.fileInput.removeAttribute('accept');
+        elements.fileInput.click();
+    };
+    
+    // Create document (placeholder)
+    window.createDocument = function() {
+        showMobileToast('जल्द ही उपलब्ध होगा', 'info');
+    };
+}
+
 async function handleFiles(fileList) {
     const files = Array.from(fileList);
     let validFiles = 0;
@@ -455,35 +563,35 @@ async function handleFiles(fileList) {
     for (const file of files) {
         // Check file size
         if (file.size > CONFIG.MAX_FILE_SIZE) {
-            showNotification(`${file.name} - 500MB से बड़ी फाइल नहीं अपलोड कर सकते`, 'error');
+            showMobileToast(`${file.name} - 500MB से बड़ी नहीं`, 'error');
             continue;
         }
         
         // Check total storage
         const newTotalSize = state.stats.totalSize + file.size;
         if (newTotalSize > CONFIG.MAX_STORAGE) {
-            showNotification('10GB स्टोरेज पूरी हो गई! कुछ फाइलें डिलीट करें', 'error');
+            showMobileToast('10GB स्टोरेज पूरी हो गई', 'error');
             continue;
         }
         
         // Check file type
         const type = getFileType(file.name);
         if (type === 'other') {
-            showNotification(`${file.name} - यह फाइल टाइप सपोर्टेड नहीं है`, 'error');
+            showMobileToast(`${file.name} - सपोर्टेड नहीं`, 'error');
             continue;
         }
         
-        // Check video duration for video files
+        // Check video duration
         if (type === 'video') {
             try {
                 const duration = await getVideoDuration(file);
                 if (duration > CONFIG.MAX_VIDEO_DURATION) {
-                    showNotification(`${file.name} - 5 मिनट से लंबा वीडियो नहीं अपलोड कर सकते`, 'error');
+                    showMobileToast(`${file.name} - 5 मिनट से लंबा नहीं`, 'error');
                     continue;
                 }
             } catch (error) {
                 console.error('Video duration error:', error);
-                showNotification(`${file.name} - वीडियो चेक करने में त्रुटि`, 'error');
+                showMobileToast(`${file.name} - चेक करने में त्रुटि`, 'error');
                 continue;
             }
         }
@@ -504,7 +612,7 @@ async function handleFiles(fileList) {
     
     if (validFiles > 0) {
         updateSelectedFilesUI();
-        showNotification(`${validFiles} फाइलें चुन ली गईं`, 'success');
+        showMobileToast(`${validFiles} फाइलें चुनी गईं`, 'success');
     }
 }
 
@@ -603,6 +711,7 @@ async function startUpload() {
             
             // Update stats
             state.stats.totalSize += fileData.size;
+            state.stats.todayUploads++;
             
             completed++;
             
@@ -612,7 +721,7 @@ async function startUpload() {
             
         } catch (error) {
             console.error('Upload error:', error);
-            showNotification(`${fileData.name} अपलोड में त्रुटि`, 'error');
+            showMobileToast(`${fileData.name} अपलोड में त्रुटि`, 'error');
         }
     }
     
@@ -633,7 +742,7 @@ async function startUpload() {
         updateSelectedFilesUI();
         loadFiles();
         
-        showNotification(`${totalFiles} फाइलें सफलतापूर्वक अपलोड हो गईं`, 'success');
+        showMobileToast(`${totalFiles} फाइलें अपलोड हो गईं`, 'success');
     }, 1000);
 }
 
@@ -677,11 +786,16 @@ function loadFiles() {
     if (filteredFiles.length === 0) {
         elements.emptyState.style.display = 'block';
         elements.filesGrid.style.display = 'none';
+        elements.filesListView.style.display = 'none';
         elements.pagination.style.display = 'none';
     } else {
         elements.emptyState.style.display = 'none';
-        elements.filesGrid.style.display = 'grid';
-        renderFilesGrid(filteredFiles);
+        
+        if (state.viewMode === 'grid') {
+            renderFilesGrid(filteredFiles);
+        } else {
+            renderFilesList(filteredFiles);
+        }
         
         // Pagination
         const totalPages = Math.ceil(filteredFiles.length / CONFIG.ITEMS_PER_PAGE);
@@ -696,8 +810,8 @@ function loadFiles() {
 
 function renderFilesGrid(files) {
     elements.filesGrid.innerHTML = '';
+    elements.filesGrid.style.display = 'grid';
     
-    // Get current page files
     const start = (state.currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
     const end = start + CONFIG.ITEMS_PER_PAGE;
     const pageFiles = files.slice(start, end);
@@ -725,10 +839,6 @@ function renderFilesGrid(files) {
                         <span class="label">व्यू</span>
                         <span class="value">${file.views}</span>
                     </div>
-                    <div class="meta-item">
-                        <span class="label">डाउनलोड</span>
-                        <span class="value">${file.downloads}</span>
-                    </div>
                 </div>
                 <div class="file-card-actions">
                     <button class="file-card-btn view" onclick="previewFile('${file.id}')">
@@ -739,19 +849,85 @@ function renderFilesGrid(files) {
                         <i class="fas fa-download"></i>
                         <span>डाउनलोड</span>
                     </button>
-                    <button class="file-card-btn share" onclick="shareFile('${file.id}')">
-                        <i class="fas fa-share-alt"></i>
-                        <span>शेयर</span>
-                    </button>
-                    <button class="file-card-btn delete" onclick="deleteFile('${file.id}')">
-                        <i class="fas fa-trash"></i>
-                        <span>डिलीट</span>
-                    </button>
                 </div>
             </div>
         `;
         elements.filesGrid.appendChild(fileCard);
     });
+}
+
+function renderFilesList(files) {
+    elements.filesListView.innerHTML = '';
+    elements.filesListView.style.display = 'block';
+    
+    const start = (state.currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
+    const end = start + CONFIG.ITEMS_PER_PAGE;
+    const pageFiles = files.slice(start, end);
+    
+    pageFiles.forEach(file => {
+        const listItem = document.createElement('div');
+        listItem.className = 'list-view-item';
+        listItem.innerHTML = `
+            <div class="file-icon-small ${file.type}" style="background: ${getFileColor(file.type)}20; color: ${getFileColor(file.type)};">
+                <i class="fas ${getFileIcon(file.type)}"></i>
+            </div>
+            <div class="list-view-info">
+                <h4 title="${file.name}">${file.name}</h4>
+                <p>${formatFileSize(file.size)} • ${getTimeAgo(file.uploadDate)}</p>
+            </div>
+            <div class="list-view-actions">
+                <button class="list-view-btn" onclick="previewFile('${file.id}')">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="list-view-btn" onclick="downloadFile('${file.id}')">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add swipe actions for mobile
+        if (isMobile.any()) {
+            setupSwipeActions(listItem, file.id);
+        }
+        
+        elements.filesListView.appendChild(listItem);
+    });
+}
+
+function setupSwipeActions(element, fileId) {
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    element.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    element.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe(element, touchStartX, touchEndX, fileId);
+    }, { passive: true });
+}
+
+function handleSwipe(element, startX, endX, fileId) {
+    const threshold = 50;
+    const diff = startX - endX;
+    
+    if (Math.abs(diff) > threshold) {
+        if (diff > 0) {
+            // Swipe left - delete
+            element.style.transform = 'translateX(-100%)';
+            setTimeout(() => {
+                deleteFile(fileId);
+            }, 300);
+        } else {
+            // Swipe right - share
+            element.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                element.style.transform = '';
+                shareFile(fileId);
+            }, 300);
+        }
+    }
 }
 
 function renderPagination(totalPages, filteredFiles) {
@@ -767,7 +943,7 @@ function renderPagination(totalPages, filteredFiles) {
     };
     
     // Page numbers
-    const maxVisible = 5;
+    const maxVisible = 3;
     let startPage = Math.max(1, state.currentPage - Math.floor(maxVisible / 2));
     let endPage = Math.min(totalPages, startPage + maxVisible - 1);
     
@@ -804,6 +980,7 @@ function previewFile(fileId) {
     // Update view count
     file.views++;
     state.stats.totalViews++;
+    state.lastActivity = new Date().toISOString();
     saveToStorage();
     updateStats();
     
@@ -813,41 +990,18 @@ function previewFile(fileId) {
     // Update preview info
     elements.previewFileName.textContent = file.name;
     elements.previewFileSize.textContent = formatFileSize(file.size);
-    elements.previewFileDate.textContent = formatDate(file.uploadDate);
-    elements.previewFileViews.textContent = `${file.views} व्यू`;
     
     // Clear previous content
     elements.previewBody.innerHTML = '';
     
     // Show appropriate preview
     if (file.type === 'image') {
-        // Image preview
         elements.previewBody.innerHTML = `
             <div class="preview-image-container">
                 <img src="${file.data}" alt="${file.name}" id="previewImg">
             </div>
         `;
-        
-        // Initialize image viewer
-        const viewer = new Viewer(document.getElementById('previewImg'), {
-            inline: false,
-            toolbar: {
-                zoomIn: true,
-                zoomOut: true,
-                oneToOne: true,
-                reset: true,
-                prev: false,
-                play: false,
-                next: false,
-                rotateLeft: true,
-                rotateRight: true,
-                flipHorizontal: true,
-                flipVertical: true,
-            }
-        });
-        
     } else if (file.type === 'video') {
-        // Video preview
         elements.previewBody.innerHTML = `
             <div class="preview-video-container">
                 <video controls id="previewVideo">
@@ -856,15 +1010,7 @@ function previewFile(fileId) {
                 </video>
             </div>
         `;
-        
-        // Initialize video player
-        const video = document.getElementById('previewVideo');
-        video.onloadedmetadata = () => {
-            video.play().catch(e => console.log('Auto-play prevented:', e));
-        };
-        
     } else if (file.type === 'audio') {
-        // Audio preview
         elements.previewBody.innerHTML = `
             <div class="preview-other-container">
                 <i class="fas fa-file-audio"></i>
@@ -875,11 +1021,8 @@ function previewFile(fileId) {
                 </audio>
             </div>
         `;
-        
     } else if (file.type === 'text') {
-        // Text preview
         try {
-            // Extract text from data URL
             const base64Data = file.data.split(',')[1];
             const text = atob(base64Data);
             elements.previewBody.innerHTML = `
@@ -897,7 +1040,6 @@ function previewFile(fileId) {
             `;
         }
     } else {
-        // Other file types
         elements.previewBody.innerHTML = `
             <div class="preview-other-container">
                 <i class="fas ${getFileIcon(file.type)}"></i>
@@ -913,7 +1055,7 @@ function previewFile(fileId) {
     elements.sharePreviewBtn.onclick = () => shareFile(file.id);
     elements.deletePreviewBtn.onclick = () => {
         deleteFile(file.id);
-        elements.previewModal.style.display = 'none';
+        closePreview();
     };
     
     // Show modal
@@ -923,12 +1065,11 @@ function previewFile(fileId) {
 function downloadFile(fileId) {
     const file = state.files.find(f => f.id === fileId);
     if (!file) {
-        showNotification('फाइल नहीं मिली', 'error');
+        showMobileToast('फाइल नहीं मिली', 'error');
         return;
     }
     
     try {
-        // Create download link
         const link = document.createElement('a');
         link.href = file.data;
         link.download = file.name;
@@ -941,15 +1082,16 @@ function downloadFile(fileId) {
         // Update download count
         file.downloads++;
         state.stats.totalDownloads++;
+        state.lastActivity = new Date().toISOString();
         saveToStorage();
         updateStats();
         loadFiles();
         
-        showNotification(`${file.name} डाउनलोड शुरू हो गया`, 'success');
+        showMobileToast(`${file.name} डाउनलोड शुरू`, 'success');
         
     } catch (error) {
         console.error('Download error:', error);
-        showNotification('डाउनलोड में त्रुटि', 'error');
+        showMobileToast('डाउनलोड में त्रुटि', 'error');
     }
 }
 
@@ -957,17 +1099,15 @@ function shareFile(fileId) {
     const file = state.files.find(f => f.id === fileId);
     if (!file) return;
     
-    // Generate share URL (simulated)
     const shareUrl = `${window.location.href}#file=${fileId}`;
     
     if (navigator.share) {
-        // Use Web Share API if available
         navigator.share({
             title: file.name,
             text: `${file.name} फाइल देखें`,
             url: shareUrl
         }).then(() => {
-            showNotification('फाइल शेयर की गई', 'success');
+            showMobileToast('फाइल शेयर की गई', 'success');
         }).catch(() => {
             copyToClipboard(shareUrl);
         });
@@ -977,10 +1117,6 @@ function shareFile(fileId) {
 }
 
 function deleteFile(fileId) {
-    if (!confirm('क्या आप वाकई इस फाइल को डिलीट करना चाहते हैं?')) {
-        return;
-    }
-    
     const fileIndex = state.files.findIndex(f => f.id === fileId);
     if (fileIndex === -1) return;
     
@@ -993,16 +1129,31 @@ function deleteFile(fileId) {
     state.stats.totalSize -= file.size;
     state.stats.totalViews -= file.views;
     state.stats.totalDownloads -= file.downloads;
+    state.lastActivity = new Date().toISOString();
     
     // Save and reload
     saveToStorage();
     updateStats();
     loadFiles();
     
-    showNotification('फाइल डिलीट हो गई', 'success');
+    showMobileToast('फाइल डिलीट हो गई', 'success');
 }
 
-// ===== UI CONTROLS =====
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showMobileToast('लिंक कॉपी हो गया', 'success');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showMobileToast('लिंक कॉपी हो गया', 'success');
+    });
+}
+
+// ===== MOBILE CONTROLS =====
 function initUIControls() {
     // Search
     elements.searchBox.addEventListener('input', (e) => {
@@ -1026,7 +1177,7 @@ function initUIControls() {
     });
     
     // Clear all files
-    elements.clearAllBtn.addEventListener('click', () => {
+    window.clearAllFiles = function() {
         if (!confirm('क्या आप सभी फाइलें डिलीट करना चाहते हैं?\nयह एक्शन पूर्ववत नहीं किया जा सकता!')) {
             return;
         }
@@ -1037,128 +1188,78 @@ function initUIControls() {
             totalSize: 0,
             totalViews: 0,
             totalDownloads: 0,
-            visitors: state.stats.visitors
+            visitors: state.stats.visitors,
+            todayUploads: 0
         };
         
         saveToStorage();
         updateStats();
         loadFiles();
         
-        showNotification('सभी फाइलें डिलीट हो गईं', 'success');
-    });
-    
-    // Modal controls
-    elements.closePreviewBtn.addEventListener('click', () => {
-        elements.previewModal.style.display = 'none';
-    });
-    
-    // Close modals on outside click
-    window.addEventListener('click', (e) => {
-        if (e.target === elements.previewModal) {
-            elements.previewModal.style.display = 'none';
-        }
-    });
-}
-
-// ===== NOTIFICATION SYSTEM =====
-function showNotification(message, type = 'info') {
-    // Remove existing notifications
-    const existing = document.querySelector('.notification');
-    if (existing) existing.remove();
-    
-    // Create notification
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
-        <button class="notification-close">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    // Add styles
-    const style = document.createElement('style');
-    style.textContent = `
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 3000;
-            animation: slideInRight 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            max-width: 400px;
-        }
-        .notification-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .notification-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .notification-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        .notification-close {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: inherit;
-            padding: 0;
-            margin-left: 10px;
-        }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    `;
-    
-    // Add to DOM
-    document.head.appendChild(style);
-    document.body.appendChild(notification);
-    
-    // Close button
-    notification.querySelector('.notification-close').onclick = () => {
-        notification.remove();
+        showMobileToast('सभी फाइलें डिलीट हो गईं', 'success');
     };
     
-    // Auto remove
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
+    if (elements.clearAllBtn) {
+        elements.clearAllBtn.addEventListener('click', clearAllFiles);
+    }
+    
+    // Logout button
+    if (elements.logoutBtn) {
+        elements.logoutBtn.addEventListener('click', handleLogout);
+    }
+    
+    // Modal controls
+    elements.closePreviewBtn.addEventListener('click', closePreview);
+    elements.closeHelpBtn.addEventListener('click', () => {
+        elements.helpModal.style.display = 'none';
+    });
+    
+    // Window click to close modals
+    window.addEventListener('click', (e) => {
+        if (e.target === elements.previewModal) {
+            closePreview();
         }
-    }, 5000);
+        if (e.target === elements.helpModal) {
+            elements.helpModal.style.display = 'none';
+        }
+    });
+    
+    // Mobile gestures
+    if (isMobile.any()) {
+        setupMobileGestures();
+    }
 }
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('लिंक कॉपी हो गया', 'success');
-    }).catch(() => {
-        // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showNotification('लिंक कॉपी हो गया', 'success');
-    });
-}
-
-function scrollToUpload() {
-    document.getElementById('upload').scrollIntoView({
-        behavior: 'smooth'
-    });
+function setupMobileGestures() {
+    // Prevent zoom on double tap
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+    
+    // Pull to refresh
+    let startY = 0;
+    document.addEventListener('touchstart', e => {
+        startY = e.touches[0].pageY;
+    }, { passive: true });
+    
+    document.addEventListener('touchmove', e => {
+        const currentY = e.touches[0].pageY;
+        const diff = currentY - startY;
+        
+        if (window.scrollY === 0 && diff > 50) {
+            // Show refresh indicator
+            document.body.style.transform = `translateY(${diff}px)`;
+        }
+    }, { passive: true });
+    
+    document.addEventListener('touchend', e => {
+        document.body.style.transform = '';
+    }, { passive: true });
 }
 
 // ===== INITIALIZATION =====
@@ -1179,27 +1280,71 @@ function initApp() {
         // Load files
         loadFiles();
         
-        // Show welcome message
-        setTimeout(() => {
-            if (state.files.length === 0) {
-                showNotification('पहली फाइल अपलोड करने के लिए ऊपर "अपलोड" सेक्शन में जाएं', 'info');
-            }
-            
-            // Show session info
-            if (state.sessionStart) {
-                const time = new Date().toLocaleTimeString('hi-IN');
-                showNotification(`लॉगिन समय: ${time} | विज़िटर्स: ${state.stats.visitors}`, 'info');
-            }
-        }, 1000);
+        // Set default view mode
+        setViewMode('grid');
         
-    }, 1500);
+        // Show welcome message for new users
+        if (state.files.length === 0) {
+            showMobileToast('पहली फाइल अपलोड करने के लिए ऊपर जाएं', 'info');
+        }
+        
+    }, 1000);
 }
+
+// ===== GLOBAL FUNCTIONS =====
+window.scrollToUpload = function() {
+    scrollToSection('upload');
+    hideMobileMenu();
+};
+
+window.showHelp = function() {
+    elements.helpModal.style.display = 'flex';
+    hideMobileMenu();
+};
+
+window.refreshApp = function() {
+    location.reload();
+};
+
+window.clearCache = function() {
+    if (confirm('क्या आप सभी कैश साफ़ करना चाहते हैं?')) {
+        localStorage.clear();
+        location.reload();
+    }
+};
+
+window.installApp = function() {
+    if (window.deferredPrompt) {
+        window.deferredPrompt.prompt();
+        window.deferredPrompt.userChoice.then(() => {
+            window.deferredPrompt = null;
+        });
+    } else {
+        showMobileToast('इंस्टॉल ऑप्शन उपलब्ध नहीं', 'info');
+    }
+};
 
 // ===== MAIN INITIALIZATION =====
 function init() {
-    // Initialize password system first
-    initPasswordSystem();
+    // Initialize name-based system
+    initNameSystem();
+    
+    // PWA support
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+    });
+    
+    // Online/offline detection
+    window.addEventListener('online', () => {
+        showMobileToast('इंटरनेट कनेक्शन बहाल', 'success');
+    });
+    
+    window.addEventListener('offline', () => {
+        showMobileToast('ऑफलाइन मोड में', 'info');
+    });
 }
 
 // Start the application
 document.addEventListener('DOMContentLoaded', init);
+
